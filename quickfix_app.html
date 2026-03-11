@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuickFix — Service Request Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── CSS VARIABLES ── */
+    :root {
+      --bg:       #0a0c10;
+      --surface:  #111318;
+      --card:     #161a22;
+      --border:   #1f2530;
+      --accent:   #00e5ff;
+      --accent2:  #7b5ea7;
+      --green:    #00d68f;
+      --yellow:   #ffb300;
+      --red:      #ff4d6d;
+      --text:     #e8eaf0;
+      --muted:    #6b7280;
+      --font-head:"Syne", sans-serif;
+      --font-mono:"JetBrains Mono", monospace;
+      --font-body:"Inter", sans-serif;
+    }
+
+    /* ── RESET ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── GRID BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── LAYOUT ── */
+    .app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── HEADER ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 32px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 40px;
+    }
+    .logo { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .logo-text h1 { font-family: var(--font-head); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+    .logo-text p { font-size: 12px; color: var(--muted); font-family: var(--font-mono); margin-top: 2px; }
+    .header-stats { display: flex; gap: 24px; }
+    .stat-pill {
+      display: flex; flex-direction: column; align-items: center;
+      background: var(--card); border: 1px solid var(--border);
+      padding: 10px 20px; border-radius: 10px;
+    }
+    .stat-pill .num { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: var(--accent); }
+    .stat-pill .lbl { font-size: 10px; color: var(--muted); font-family: var(--font-mono); margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 32px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; width: fit-content; }
+    .tab {
+      padding: 9px 20px; border-radius: 9px; font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+      border: none; background: transparent; color: var(--muted); cursor: pointer; transition: all .2s;
+    }
+    .tab.active { background: var(--accent); color: #000; font-weight: 700; }
+    .tab:hover:not(.active) { color: var(--text); background: var(--border); }
+
+    /* ── VIEW PANELS ── */
+    .view { display: none; animation: fadeIn .25s ease; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ── FORM ── */
+    .form-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 36px;
+      max-width: 640px;
+    }
+    .form-card h2 { font-family: var(--font-head); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .form-card p { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 12px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .8px; }
+    input, select, textarea {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--font-body); font-size: 14px; padding: 11px 14px;
+      outline: none; transition: border-color .2s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 90px; }
+    select option { background: var(--surface); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px; border-radius: 9px; font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+      border: none; cursor: pointer; transition: all .2s; margin-top: 20px;
+    }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: #33ebff; transform: translateY(-1px); }
+    .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red); font-size: 11px; padding: 6px 12px; margin-top: 0; }
+    .btn-danger:hover { background: var(--red); color: #fff; }
+
+    /* ── SUCCESS TOAST ── */
+    .toast {
+      display: none; position: fixed; top: 24px; right: 24px; z-index: 999;
+      background: var(--green); color: #000; padding: 14px 22px; border-radius: 10px;
+      font-family: var(--font-mono); font-size: 13px; font-weight: 700;
+      animation: slideIn .3s ease;
+    }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: none; } }
+
+    /* ── FILTERS ── */
+    .filters { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+    .filter-btn {
+      padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); font-family: var(--font-mono); font-size: 12px;
+      cursor: pointer; transition: all .15s;
+    }
+    .filter-btn.active, .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .search-box {
+      margin-left: auto; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 14px; color: var(--text); font-size: 13px;
+      font-family: var(--font-body); outline: none; width: 220px;
+    }
+    .search-box:focus { border-color: var(--accent); }
+
+    /* ── REQUESTS TABLE / CARDS ── */
+    .requests-list { display: flex; flex-direction: column; gap: 12px; }
+    .request-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 20px 24px; display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 16px; align-items: center;
+      transition: border-color .2s, transform .15s;
+    }
+    .request-card:hover { border-color: #2a3040; transform: translateY(-1px); }
+    .req-id { font-family: var(--font-mono); font-size: 12px; color: var(--muted); width: 60px; }
+    .req-id span { display: block; font-size: 16px; font-weight: 700; color: var(--accent); font-family: var(--font-head); }
+    .req-body h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .req-body .meta { display: flex; gap: 14px; font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+    .req-body .desc { font-size: 13px; color: var(--muted); margin-top: 6px; max-width: 500px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .status-badge {
+      padding: 5px 12px; border-radius: 20px; font-family: var(--font-mono); font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .6px; white-space: nowrap;
+    }
+    .status-Pending    { background: rgba(255,179,0,.15);   color: var(--yellow); border: 1px solid rgba(255,179,0,.3); }
+    .status-InProgress { background: rgba(0,229,255,.12);   color: var(--accent); border: 1px solid rgba(0,229,255,.3); }
+    .status-Completed  { background: rgba(0,214,143,.12);   color: var(--green);  border: 1px solid rgba(0,214,143,.3); }
+    .status-select {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: var(--font-mono); font-size: 12px; padding: 7px 10px;
+      cursor: pointer; outline: none;
+    }
+    .req-actions { display: flex; gap: 8px; align-items: center; }
+    .empty-state {
+      text-align: center; padding: 80px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state h3 { font-family: var(--font-head); font-size: 18px; color: var(--text); margin-bottom: 8px; }
+    .empty-state p { font-size: 13px; }
+
+    /* ── SECTION TITLE ── */
+    .section-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+    .section-header h2 { font-family: var(--font-head); font-size: 18px; font-weight: 700; }
+    .section-header span { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+
+    @media (max-width: 700px) {
+      .request-card { grid-template-columns: 1fr; }
+      .header-stats { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🔧</div>
+      <div class="logo-text">
+        <h1>QuickFix</h1>
+        <p>service-request-tracker v1.0</p>
+      </div>
+    </div>
+    <div class="header-stats">
+      <div class="stat-pill"><span class="num" id="stat-total">0</span><span class="lbl">Total</span></div>
+      <div class="stat-pill"><span class="num" id="stat-pending" style="color:var(--yellow)">0</span><span class="lbl">Pending</span></div>
+      <div class="stat-pill"><span class="num" id="stat-progress" style="color:var(--accent)">0</span><span class="lbl">In Progress</span></div>
+      <div class="stat-pill"><span class="num" id="stat-done" style="color:var(--green)">0</span><span class="lbl">Completed</span></div>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('submit')">＋ Submit Request</button>
+    <button class="tab" onclick="switchTab('view')">☰ All Requests</button>
+  </div>
+
+  <!-- ── VIEW: SUBMIT ── -->
+  <div class="view active" id="view-submit">
+    <div class="form-card">
+      <h2>New Service Request</h2>
+      <p>Fill in the details below. All fields are required.</p>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Customer Name</label>
+          <input type="text" id="f-name" placeholder="e.g. Thandi Mokoena" />
+        </div>
+        <div class="form-group">
+          <label>Contact Number</label>
+          <input type="tel" id="f-phone" placeholder="e.g. 082 555 1234" />
+        </div>
+        <div class="form-group">
+          <label>Appliance Type</label>
+          <select id="f-appliance">
+            <option value="">— Select appliance —</option>
+            <option>Washing Machine</option>
+            <option>Refrigerator</option>
+            <option>Oven / Stove</option>
+            <option>Air Conditioner</option>
+            <option>Dishwasher</option>
+            <option>Geyser / Water Heater</option>
+            <option>Tumble Dryer</option>
+            <option>Microwave</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <select id="f-priority">
+            <option value="Low">Low</option>
+            <option value="Medium" selected>Medium</option>
+            <option value="High">High</option>
+            <option value="Urgent">Urgent</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Issue Description</label>
+          <textarea id="f-desc" placeholder="Describe the fault or problem in detail..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Preferred Date</label>
+          <input type="date" id="f-date" />
+        </div>
+        <div class="form-group">
+          <label>Address / Area</label>
+          <input type="text" id="f-address" placeholder="e.g. Sandton, Johannesburg" />
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="submitRequest()">⚡ Submit Request</button>
+    </div>
+  </div>
+
+  <!-- ── VIEW: ALL REQUESTS ── -->
+  <div class="view" id="view-view">
+    <div class="section-header">
+      <h2>Service Requests</h2>
+      <span id="count-label">0 requests</span>
+    </div>
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('All', this)">All</button>
+      <button class="filter-btn" onclick="setFilter('Pending', this)">Pending</button>
+      <button class="filter-btn" onclick="setFilter('InProgress', this)">In Progress</button>
+      <button class="filter-btn" onclick="setFilter('Completed', this)">Completed</button>
+      <input class="search-box" id="search-box" placeholder="🔍  Search by name or appliance..." oninput="renderRequests()" />
+    </div>
+    <div class="requests-list" id="requests-list"></div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  /* ────────────────────────────────────────────
+   * DATA MODULE
+   * Manages the in-memory requests array and
+   * provides CRUD operations (DRY principle)
+   * ──────────────────────────────────────────── */
+  const RequestStore = (() => {
+    let requests = [];
+    let nextId = 1;
+
+    // Generate unique zero-padded ID
+    const generateId = () => `#${String(nextId++).padStart(3, '0')}`;
+
+    // Add a new request
+    const add = (data) => {
+      const request = { id: generateId(), ...data, status: 'Pending', createdAt: new Date().toLocaleDateString('en-ZA') };
+      requests.unshift(request);
+      return request;
+    };
+
+    // Update a request's status by ID
+    const updateStatus = (id, status) => {
+      const req = requests.find(r => r.id === id);
+      if (req) req.status = status;
+    };
+
+    // Delete a request by ID
+    const remove = (id) => {
+      requests = requests.filter(r => r.id !== id);
+    };
+
+    // Return filtered + searched copy
+    const query = (filterStatus, searchTerm) => {
+      return requests.filter(r => {
+        const matchStatus = filterStatus === 'All' || r.status.replace(' ', '') === filterStatus;
+        const term = searchTerm.toLowerCase();
+        const matchSearch = !term || r.name.toLowerCase().includes(term) || r.appliance.toLowerCase().includes(term);
+        return matchStatus && matchSearch;
+      });
+    };
+
+    // Aggregate stats for header
+    const stats = () => ({
+      total:    requests.length,
+      pending:  requests.filter(r => r.status === 'Pending').length,
+      progress: requests.filter(r => r.status === 'In Progress').length,
+      done:     requests.filter(r => r.status === 'Completed').length,
+    });
+
+    return { add, updateStatus, remove, query, stats };
+  })();
+
+  /* ────────────────────────────────────────────
+   * UI MODULE — Tab switching
+   * ──────────────────────────────────────────── */
+  function switchTab(tabName) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(`view-${tabName}`).classList.add('active');
+    event.target.classList.add('active');
+    if (tabName === 'view') renderRequests();
+  }
+
+  /* ────────────────────────────────────────────
+   * UI MODULE — Form validation (DRY helper)
+   * ──────────────────────────────────────────── */
+  function getField(id) { return document.getElementById(id).value.trim(); }
+
+  function validate(fields) {
+    for (const [id, label] of fields) {
+      if (!getField(id)) { showToast(`⚠ Please enter: ${label}`, '#ff4d6d'); return false; }
+    }
+    return true;
+  }
+
+  /* ────────────────────────────────────────────
+   * UI MODULE — Submit request
+   * ──────────────────────────────────────────── */
+  function submitRequest() {
+    const required = [
+      ['f-name', 'Customer Name'], ['f-phone', 'Contact Number'],
+      ['f-appliance', 'Appliance Type'], ['f-desc', 'Issue Description'],
+      ['f-date', 'Preferred Date'], ['f-address', 'Address'],
+    ];
+    if (!validate(required)) return;
+
+    RequestStore.add({
+      name:      getField('f-name'),
+      phone:     getField('f-phone'),
+      appliance: getField('f-appliance'),
+      priority:  getField('f-priority'),
+      desc:      getField('f-desc'),
+      date:      getField('f-date'),
+      address:   getField('f-address'),
+    });
+
+    // Reset form
+    ['f-name','f-phone','f-appliance','f-desc','f-date','f-address'].forEach(id => {
+      document.getElementById(id).value = id === 'f-appliance' ? '' : '';
+    });
+    document.getElementById('f-priority').value = 'Medium';
+
+    updateStats();
+    showToast('✓ Service request submitted!');
+    // Switch to view tab after 1 second
+    setTimeout(() => {
+      document.querySelectorAll('.tab')[1].click();
+    }, 1000);
+  }
+
+  /* ────────────────────────────────────────────
+   * UI MODULE — Update status
+   * ──────────────────────────────────────────── */
+  function updateStatus(id, newStatus) {
+    RequestStore.updateStatus(id, newStatus);
+    updateStats();
+    renderRequests();
+    showToast(`✓ Status updated to ${newStatus}`);
+  }
+
+  /* ────────────────────────────────────────────
+   * UI MODULE — Delete request
+   * ──────────────────────────────────────────── */
+  function deleteRequest(id) {
+    if (!confirm(`Delete request ${id}?`)) return;
+    RequestStore.remove(id);
+    updateStats();
+    renderRequests();
+    showToast('🗑 Request deleted', '#ff4d6d');
+  }
+
+  /* ────────────────────────────────────────────
+   * UI MODULE — Render requests list
+   * ──────────────────────────────────────────── */
+  let currentFilter = 'All';
+
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderRequests();
+  }
+
+  function renderRequests() {
+    const search = document.getElementById('search-box').value;
+    const requests = RequestStore.query(currentFilter, search);
+    const list = document.getElementById('requests-list');
+    const countLabel = document.getElementById('count-label');
+    countLabel.textContent = `${requests.length} request${requests.length !== 1 ? 's' : ''}`;
+
+    if (requests.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="icon">🔧</div>
+          <h3>No requests found</h3>
+          <p>${currentFilter !== 'All' ? 'No ' + currentFilter + ' requests.' : 'Submit your first service request to get started.'}</p>
+        </div>`;
+      return;
+    }
+
+    // Build each card using a reusable template function (DRY)
+    list.innerHTML = requests.map(r => buildCard(r)).join('');
+  }
+
+  // Reusable card builder — DRY principle applied
+  function buildCard(r) {
+    const statusClass = r.status.replace(' ', '');
+    const priorityColor = { Low: '#6b7280', Medium: '#ffb300', High: '#ff6b35', Urgent: '#ff4d6d' }[r.priority] || '#6b7280';
+    return `
+      <div class="request-card" id="card-${r.id.slice(1)}">
+        <div class="req-id">
+          <span>${r.id}</span>
+          ${r.createdAt}
+        </div>
+        <div class="req-body">
+          <h3>${escapeHtml(r.name)} <span style="font-size:11px;color:${priorityColor};font-family:var(--font-mono);margin-left:8px">[${r.priority}]</span></h3>
+          <div class="meta">
+            <span>🔧 ${escapeHtml(r.appliance)}</span>
+            <span>📍 ${escapeHtml(r.address)}</span>
+            <span>📅 ${r.date}</span>
+            <span>📞 ${escapeHtml(r.phone)}</span>
+          </div>
+          <div class="desc">${escapeHtml(r.desc)}</div>
+        </div>
+        <div class="status-badge status-${statusClass}">${r.status}</div>
+        <div class="req-actions">
+          <select class="status-select" onchange="updateStatus('${r.id}', this.value)">
+            <option ${r.status==='Pending'?'selected':''}>Pending</option>
+            <option ${r.status==='In Progress'?'selected':''}>In Progress</option>
+            <option ${r.status==='Completed'?'selected':''}>Completed</option>
+          </select>
+          <button class="btn btn-danger" onclick="deleteRequest('${r.id}')">✕</button>
+        </div>
+      </div>`;
+  }
+
+  /* ────────────────────────────────────────────
+   * UTILITY: Escape HTML to prevent XSS
+   * ──────────────────────────────────────────── */
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  /* ────────────────────────────────────────────
+   * UI MODULE — Update header stats
+   * ──────────────────────────────────────────── */
+  function updateStats() {
+    const s = RequestStore.stats();
+    document.getElementById('stat-total').textContent   = s.total;
+    document.getElementById('stat-pending').textContent = s.pending;
+    document.getElementById('stat-progress').textContent = s.progress;
+    document.getElementById('stat-done').textContent    = s.done;
+  }
+
+  /* ────────────────────────────────────────────
+   * UI MODULE — Toast notification
+   * ──────────────────────────────────────────── */
+  function showToast(msg, color = '#00d68f') {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = color;
+    toast.style.color = color === '#00d68f' ? '#000' : '#fff';
+    toast.style.display = 'block';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => { toast.style.display = 'none'; }, 2500);
+  }
+
+  /* ── Seed with sample data so the app looks populated ── */
+  const seeds = [
+    { name: 'Thandi Mokoena', phone: '082 711 2233', appliance: 'Washing Machine', priority: 'High', desc: 'Machine fills with water but drum does not spin. Makes a humming noise.', date: '2025-06-18', address: 'Soweto, JHB', status: 'In Progress' },
+    { name: 'James van der Berg', phone: '071 300 4455', appliance: 'Refrigerator', priority: 'Urgent', desc: 'Fridge stopped cooling overnight. All food spoiled. Motor runs but no cold air.', date: '2025-06-17', address: 'Sandton, JHB', status: 'Pending' },
+    { name: 'Fatima Essop', phone: '083 900 1122', appliance: 'Oven / Stove', priority: 'Medium', desc: 'Two out of four hob plates are not heating up. Electric stove.', date: '2025-06-20', address: 'Rondebosch, CPT', status: 'Pending' },
+    { name: 'Sipho Dlamini', phone: '060 444 7788', appliance: 'Air Conditioner', priority: 'Low', desc: 'AC unit runs but blows warm air. Gas top-up may be required.', date: '2025-06-22', address: 'Umhlanga, DBN', status: 'Completed' },
+  ];
+  seeds.forEach(s => {
+    const r = RequestStore.add(s);
+    if (s.status !== 'Pending') RequestStore.updateStatus(r.id, s.status);
+  });
+  updateStats();
+</script>
+</body>
+</html>
