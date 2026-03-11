@@ -77,5 +77,5 @@ Built as part of a software development case study for **QuickFix**, a fictional
 
 ## 👤 Author
 
-**[Your Name]**  
-[Your GitHub profile link]
+**Mashaba Rapholo**  
+https://github.com/mashabarapholo/
